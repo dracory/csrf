@@ -11,6 +11,7 @@ func TestTokenGenerate_NumericSecret_Valid(t *testing.T) {
 	if !TokenValidate(token, secret) {
 		t.Fatalf("numeric secret token failed validation: %s", token)
 	}
+	// t.Logf("numeric secret token: %s", token)
 }
 
 func TestTokenGenerate_AlphaNumeric_Valid(t *testing.T) {
@@ -19,6 +20,7 @@ func TestTokenGenerate_AlphaNumeric_Valid(t *testing.T) {
 	if !TokenValidate(token, secret) {
 		t.Fatalf("alphanumeric secret token failed validation: %s", token)
 	}
+	// t.Logf("alphanumeric secret token: %s", token)
 }
 
 func TestTokenGenerate_LongSecret_Valid(t *testing.T) {
