@@ -12,8 +12,11 @@ import (
 func TokenGenerate(secret string, opts ...*Options) string {
 	o := getOptionsOrDefault(opts...)
 
-	augmented := buildAugmentedSecret(secret, o)
-	tokenTruncated := truncateToBytes(augmented, 72)
+	augmentedSecret := buildAugmentedSecret(secret, o)
+
+	tokenTruncated := truncateToBytes(augmentedSecret, 72)
+
 	bcryptHash, _ := str.ToBcryptHash(tokenTruncated)
+
 	return packageToken(bcryptHash, o.ExpiresAt)
 }
