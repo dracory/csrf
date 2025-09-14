@@ -1,9 +1,9 @@
 package csrf
 
 import (
-	"github.com/dracory/str"
-	"strconv"
 	"time"
+
+	"github.com/dracory/str"
 )
 
 // TokenGenerate generates a CSRF token from the provided secret.
@@ -15,18 +15,14 @@ func TokenGenerate(secret string, opts ...*Options) string {
 	var o *Options
 	if len(opts) > 0 {
 		o = opts[0]
+	} else {
+		o = &Options{
+			ExpiresAt: time.Now().UTC().Add(DefaultPackagedExpiry),
+		}
 	}
 
-	var exp time.Time
-	if o != nil && !o.ExpiresAt.IsZero() {
-		exp = o.ExpiresAt.UTC()
-	} else {
-		exp = time.Now().UTC().Add(DefaultPackagedExpiry)
-	}
 	augmented := buildAugmentedSecret(secret, o)
-	expUnix := exp.Unix()
-	plaintext := augmented + "|exp:" + strconv.FormatInt(expUnix, 10)
-	tokenTruncated := truncateToBytes(plaintext, 72)
+	tokenTruncated := truncateToBytes(augmented, 72)
 	bcryptHash, _ := str.ToBcryptHash(tokenTruncated)
-	return box(bcryptHash, expUnix)
+	return packageToken(bcryptHash, o.ExpiresAt)
 }
