@@ -6,7 +6,7 @@ import (
 )
 
 func TokenValidate(csrfToken string, secret string) bool {
-	secret += CSRF_TOKEN_SECRET
+	secret += CSRF_TOKEN_MIXIN
 	token := carbon.Now(carbon.UTC).Format("Ymd") + secret
 	tokenTruncated := truncateToBytes(token, 72) // max 72 bytes
 	isOk := str.BcryptHashCompare(tokenTruncated, csrfToken)
