@@ -4,7 +4,7 @@ go 1.24.5
 
 require (
 	github.com/dracory/str v0.3.0
-	github.com/dromara/carbon/v2 v2.5.0
+	github.com/dromara/carbon/v2 v2.6.11
 )
 
 require (
