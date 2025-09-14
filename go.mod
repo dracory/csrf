@@ -2,10 +2,7 @@ module github.com/dracory/csrf
 
 go 1.24.5
 
-require (
-	github.com/dracory/str v0.4.0
-	github.com/dromara/carbon/v2 v2.6.11
-)
+require github.com/dracory/str v0.4.0
 
 require (
 	golang.org/x/crypto v0.42.0 // indirect
