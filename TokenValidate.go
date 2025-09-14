@@ -6,8 +6,15 @@ import (
 )
 
 func TokenValidate(csrfToken string, secret string) bool {
-	secret += CSRF_TOKEN_MIXIN
-	token := carbon.Now(carbon.UTC).Format("Ymd") + secret
+	return TokenValidateWith(csrfToken, secret, nil)
+}
+
+// TokenValidateWith validates the provided CSRF token against the secret and optional options.
+// If opts is nil, defaults to day-level granularity and no request binding.
+func TokenValidateWith(csrfToken string, secret string, opts *Options) bool {
+	augmented := buildAugmentedSecret(secret, opts)
+	timeFmt := buildTimeFormat(opts)
+	token := carbon.Now(carbon.UTC).Format(timeFmt) + augmented
 	tokenTruncated := truncateToBytes(token, 72) // max 72 bytes
 	isOk := str.BcryptHashCompare(tokenTruncated, csrfToken)
 	return isOk
