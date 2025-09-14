@@ -1,8 +1,10 @@
 package csrf
 
 import (
+	"fmt"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -53,8 +55,24 @@ func buildAugmentedSecret(secret string, opts *Options) string {
 	return s
 }
 
-// buildTimeFormat returns the carbon format string used for time component.
-// Currently fixed to day-level granularity ("Ymd").
-func buildTimeFormat(opts *Options) string {
-	return "Ymd"
+// box combines a hash and an expiry timestamp into the packaged token format
+// "<hash>:<expiresUnix>". It performs no validation.
+func box(hash string, expiresUnix int64) string {
+	return hash + ":" + strconv.FormatInt(expiresUnix, 10)
+}
+
+// unbox parses a packaged token of the form "<hash>:<expiresUnix>" and returns
+// the hash and the parsed expiry. It does not check whether the token is expired.
+func unbox(packaged string) (hash string, expiresUnix int64, err error) {
+	idx := strings.LastIndex(packaged, ":")
+	if idx <= 0 || idx >= len(packaged)-1 {
+		return "", 0, fmt.Errorf("invalid packaged token format")
+	}
+	hash = packaged[:idx]
+	expStr := packaged[idx+1:]
+	v, perr := strconv.ParseInt(expStr, 10, 64)
+	if perr != nil {
+		return "", 0, perr
+	}
+	return hash, v, nil
 }

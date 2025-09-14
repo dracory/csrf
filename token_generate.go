@@ -24,9 +24,9 @@ func TokenGenerate(secret string, opts ...*Options) string {
 		exp = time.Now().UTC().Add(DefaultPackagedExpiry)
 	}
 	augmented := buildAugmentedSecret(secret, o)
-	expUnix := strconv.FormatInt(exp.Unix(), 10)
-	plaintext := augmented + "|exp:" + expUnix
+	expUnix := exp.Unix()
+	plaintext := augmented + "|exp:" + strconv.FormatInt(expUnix, 10)
 	tokenTruncated := truncateToBytes(plaintext, 72)
 	bcryptHash, _ := str.ToBcryptHash(tokenTruncated)
-	return bcryptHash + ":" + expUnix
+	return box(bcryptHash, expUnix)
 }
