@@ -1,39 +1,56 @@
 package csrf
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
-func TestTokenGenerate(t *testing.T) {
-	tests := []struct {
-		name   string
-		secret string
-		want   bool
-	}{
-		{
-			name:   "Test Numeric Secret",
-			secret: "123",
-			want:   true,
-		},
-		{
-			name:   "Test Alpha Numeric Secret",
-			secret: "123abc",
-			want:   true,
-		},
-		{
-			name:   "Test Long Alpha Numeric Secret",
-			secret: "1234567890abcdefghijklmnopqrstuvwxyz_!@#$%^&*()-+=",
-			want:   true,
-		},
+func TestTokenGenerate_NumericSecret_Valid(t *testing.T) {
+	secret := "123"
+	token := TokenGenerate(secret)
+	if !TokenValidate(token, secret) {
+		t.Fatalf("numeric secret token failed validation: %s", token)
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			token := TokenGenerate(tt.secret)
-			isValid := TokenValidate(token, tt.secret)
+}
 
-			t.Log(token)
+func TestTokenGenerate_AlphaNumeric_Valid(t *testing.T) {
+	secret := "123abc"
+	token := TokenGenerate(secret)
+	if !TokenValidate(token, secret) {
+		t.Fatalf("alphanumeric secret token failed validation: %s", token)
+	}
+}
 
-			if !isValid {
-				t.Error("TokenGenerate() = ", token, " cannot validate")
-			}
-		})
+func TestTokenGenerate_LongSecret_Valid(t *testing.T) {
+	secret := "1234567890abcdefghijklmnopqrstuvwxyz_!@#$%^&*()-+="
+	token := TokenGenerate(secret)
+	if !TokenValidate(token, secret) {
+		t.Fatalf("long secret token failed validation: %s", token)
+	}
+}
+
+func TestTokenGenerate_EmptySecret_Valid(t *testing.T) {
+	secret := ""
+	token := TokenGenerate(secret)
+	if !TokenValidate(token, secret) {
+		t.Fatalf("empty secret token failed validation: %s", token)
+	}
+}
+
+func TestTokenGenerate_CustomExpiry_Future_Valid(t *testing.T) {
+	secret := "abc"
+	opts := &Options{ExpiresAt: time.Now().Add(2 * time.Minute)}
+	token := TokenGenerate(secret, opts)
+	if !TokenValidate(token, secret, opts) {
+		t.Fatalf("future expiry token failed validation: %s", token)
+	}
+}
+
+func TestTokenGenerate_CustomExpiry_Past_Fails(t *testing.T) {
+	secret := "abc"
+	opts := &Options{ExpiresAt: time.Now().Add(-1 * time.Minute)}
+	token := TokenGenerate(secret, opts)
+	if TokenValidate(token, secret, opts) {
+		t.Fatalf("past expiry token unexpectedly validated: %s", token)
 	}
 }
