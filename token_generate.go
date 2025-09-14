@@ -2,20 +2,31 @@ package csrf
 
 import (
 	"github.com/dracory/str"
-	"github.com/dromara/carbon/v2"
+	"strconv"
+	"time"
 )
 
-func TokenGenerate(secret string) string {
-	return TokenGenerateWith(secret, nil)
-}
+// TokenGenerate generates a CSRF token from the provided secret.
+// Optional opts[0] can customize binding and expiry behavior. This function always returns
+// a packaged token in the form "<bcrypt-hash>:<expiresUnix>" and binds the expiry into the
+// hash input as "|exp:<expiresUnix>" to prevent tampering. If ExpiresAt is zero, the expiry
+// defaults to now (UTC) + DefaultPackagedExpiry.
+func TokenGenerate(secret string, opts ...*Options) string {
+	var o *Options
+	if len(opts) > 0 {
+		o = opts[0]
+	}
 
-// TokenGenerateWith generates a CSRF token from the provided secret and optional options.
-// If opts is nil, defaults to day-level granularity and no request binding.
-func TokenGenerateWith(secret string, opts *Options) string {
-	augmented := buildAugmentedSecret(secret, opts)
-	timeFmt := buildTimeFormat(opts)
-	token := carbon.Now(carbon.UTC).Format(timeFmt) + augmented
-	tokenTruncated := truncateToBytes(token, 72) // max 72 bytes to respect bcrypt input limit
-	csrfToken, _ := str.ToBcryptHash(tokenTruncated)
-	return csrfToken
+	var exp time.Time
+	if o != nil && !o.ExpiresAt.IsZero() {
+		exp = o.ExpiresAt.UTC()
+	} else {
+		exp = time.Now().UTC().Add(DefaultPackagedExpiry)
+	}
+	augmented := buildAugmentedSecret(secret, o)
+	expUnix := strconv.FormatInt(exp.Unix(), 10)
+	plaintext := augmented + "|exp:" + expUnix
+	tokenTruncated := truncateToBytes(plaintext, 72)
+	bcryptHash, _ := str.ToBcryptHash(tokenTruncated)
+	return bcryptHash + ":" + expUnix
 }

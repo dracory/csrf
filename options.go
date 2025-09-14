@@ -1,74 +1,36 @@
 package csrf
 
 import (
-	"net"
 	"net/http"
-	"strings"
+	"time"
 )
 
-// Options allows optional request binding and time granularity controls for CSRF token generation/validation.
+// Options allows optional request binding for CSRF token generation/validation,
+// and lets you set an absolute expiry for packaged tokens.
 // All fields are optional. If Request is nil or a Bind* flag is false, that attribute is not used.
-// Granularity controls the time window used in the token: "day" (default) or "hour".
+// ExpiresAt controls the expiry timestamp embedded into packaged tokens.
 type Options struct {
-	Request       *http.Request
-	BindIP        bool
+	// Request is the incoming HTTP request whose attributes can be bound into the token.
+	// If nil, no request attributes are used regardless of the Bind* flags.
+	Request *http.Request
+
+	// BindIP, when true, mixes the client IP (X-Forwarded-For first, then X-Real-IP,
+	// then RemoteAddr) into the token. This reduces token reuse from different IPs.
+	BindIP bool
+
+	// BindUserAgent, when true, mixes the request's User-Agent header into the token.
+	// This helps constrain reuse across different clients/browsers.
 	BindUserAgent bool
-	BindPath      bool
-	BindMethod    bool
-	Granularity   string // "day" (default) or "hour"
-}
 
-func clientIP(r *http.Request) string {
-	if r == nil {
-		return ""
-	}
-	// Prefer X-Forwarded-For (first entry)
-	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		parts := strings.Split(xff, ",")
-		if len(parts) > 0 {
-			return strings.TrimSpace(parts[0])
-		}
-	}
-	// Fallback to X-Real-IP
-	if xri := r.Header.Get("X-Real-IP"); xri != "" {
-		return strings.TrimSpace(xri)
-	}
-	// Finally, RemoteAddr
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err == nil {
-		return host
-	}
-	return r.RemoteAddr
-}
+	// BindPath, when true, mixes the request URL path into the token, constraining
+	// a token to a specific endpoint/path.
+	BindPath bool
 
-func buildAugmentedSecret(secret string, opts *Options) string {
-	s := secret + CSRF_TOKEN_MIXIN
-	if opts != nil && opts.Request != nil {
-		r := opts.Request
-		if opts.BindIP {
-			s += "|ip:" + clientIP(r)
-		}
-		if opts.BindUserAgent {
-			s += "|ua:" + r.UserAgent()
-		}
-		if opts.BindPath && r.URL != nil {
-			s += "|path:" + r.URL.Path
-		}
-		if opts.BindMethod {
-			s += "|method:" + r.Method
-		}
-	}
-	return s
-}
+	// BindMethod, when true, mixes the HTTP method (e.g., POST) into the token.
+	// Useful if you want tokens to be valid only for a given method.
+	BindMethod bool
 
-// buildTimeFormat returns the carbon format string based on options.
-// Defaults to day-level granularity ("Ymd"). If opts.Granularity == "hour", returns "YmdH".
-func buildTimeFormat(opts *Options) string {
-	if opts != nil {
-		switch strings.ToLower(strings.TrimSpace(opts.Granularity)) {
-		case "hour", "hourly":
-			return "YmdH"
-		}
-	}
-	return "Ymd"
+	// ExpiresAt sets the absolute expiry (UTC) for packaged tokens. If zero, the generator
+	// uses a deterministic default of now (UTC) + DefaultPackagedExpiry.
+	ExpiresAt time.Time
 }
