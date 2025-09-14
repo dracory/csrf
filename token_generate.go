@@ -1,8 +1,6 @@
 package csrf
 
 import (
-	"time"
-
 	"github.com/dracory/str"
 )
 
@@ -12,14 +10,7 @@ import (
 // hash input as "|exp:<expiresUnix>" to prevent tampering. If ExpiresAt is zero, the expiry
 // defaults to now (UTC) + DefaultPackagedExpiry.
 func TokenGenerate(secret string, opts ...*Options) string {
-	var o *Options
-	if len(opts) > 0 {
-		o = opts[0]
-	} else {
-		o = &Options{
-			ExpiresAt: time.Now().UTC().Add(DefaultPackagedExpiry),
-		}
-	}
+	o := getOptionsOrDefault(opts...)
 
 	augmented := buildAugmentedSecret(secret, o)
 	tokenTruncated := truncateToBytes(augmented, 72)
